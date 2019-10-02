@@ -7,6 +7,7 @@
 //
 
 #import "JotTextView.h"
+#import "JotViewController.h"
 
 @interface JotTextView ()
 
@@ -46,6 +47,7 @@
         self.textLabel.font = self.font;
         self.textLabel.textColor = self.textColor;
         self.textLabel.textAlignment = self.textAlignment;
+        
         self.textLabel.center = CGPointMake(CGRectGetMidX([UIScreen mainScreen].bounds),
                                             CGRectGetMidY([UIScreen mainScreen].bounds));
         self.referenceCenter = CGPointZero;
@@ -97,7 +99,7 @@
 
 - (void)setScale:(CGFloat)scale
 {
-    if (_scale != scale) {
+    if (!fequalzero(_scale - scale)) {
         _scale = scale;
         self.textLabel.transform = CGAffineTransformIdentity;
         CGPoint labelCenter = self.textLabel.center;
@@ -115,7 +117,7 @@
 
 - (void)setFontSize:(CGFloat)fontSize
 {
-    if (_fontSize != fontSize) {
+    if (!fequalzero(_fontSize - fontSize)) {    
         _fontSize = fontSize;
         [self adjustLabelFont];
     }
@@ -327,7 +329,8 @@
 
 - (UIImage *)drawTextOnImage:(UIImage *)image
 {
-    return [self drawTextImageWithSize:image.size backgroundImage:image];
+   return [self drawTextImageWithSize:image.size backgroundImage:image];
+
 }
 
 - (UIImage *)drawTextImageWithSize:(CGSize)size backgroundImage:(UIImage *)backgroundImage
@@ -345,6 +348,49 @@
     return [UIImage imageWithCGImage:drawnImage.CGImage
                                scale:1.f
                          orientation:drawnImage.imageOrientation];
+
+}
+
+#pragma mark - block Rendering
+
+- (void)drawTextOnImage:(UIImage *)image completion:(void (^)(UIImage* imageReturn))block
+{
+    [self blockDrawTextImageWithSize:image.size backgroundImage:image bounds:self.bounds layer:self.layer completion:^(__unused UIImage *imageReturn) {
+        block(imageReturn);
+
+    }];
+    
+    
+}
+
+- (void) blockDrawTextImageWithSize:(CGSize)size backgroundImage:(UIImage *)backgroundImage bounds:(CGRect)bounds layer:(CALayer*)theLayer completion:(void (^)(UIImage* imageReturn))block
+{
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void)
+                   {
+                       CGFloat scale = size.width / CGRectGetWidth(bounds);
+                       
+                       UIGraphicsBeginImageContextWithOptions(bounds.size, NO, scale);
+                       
+                       [backgroundImage drawInRect:CGRectMake(0.f, 0.f, CGRectGetWidth(bounds), CGRectGetHeight(bounds))];
+                       
+                       [theLayer renderInContext:UIGraphicsGetCurrentContext()];
+                       
+                       UIImage *drawnImage = UIGraphicsGetImageFromCurrentImageContext();
+                       UIGraphicsEndImageContext();
+                       UIImage *theexImage = [UIImage imageWithCGImage:drawnImage.CGImage
+                                                                 scale:1.f
+                                                           orientation:drawnImage.imageOrientation];
+                       dispatch_async(dispatch_get_main_queue(), ^(void)
+                                      {
+                                          block(theexImage);
+                                      });
+                       
+                   });
+    
+
+    
+ 
 }
 
 @end

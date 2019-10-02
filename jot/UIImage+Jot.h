@@ -26,4 +26,10 @@
  */
 + (UIImage *)jotImageWithColor:(UIColor *)color size:(CGSize)size;
 
+
+/*
+ * Block-based jotImageWithColor
+ * Jene Edit 01/31/2019
+ */
++ (void)jotImageWithColor:(UIColor *)color size:(CGSize)size completion:(void (^)(UIImage* imageReturn))block;
 @end

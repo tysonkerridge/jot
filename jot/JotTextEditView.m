@@ -7,7 +7,9 @@
 //
 
 #import "JotTextEditView.h"
-#import <Masonry/Masonry.h>
+#import "Masonry.h"
+#import "PureLayout.h"
+#import "JotViewController.h"
 
 @interface JotTextEditView () <UITextViewDelegate>
 
@@ -35,10 +37,7 @@
         _textContainer = [UIView new];
         self.textContainer.layer.masksToBounds = YES;
         [self addSubview:self.textContainer];
-        [self.textContainer mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.top.and.left.and.right.equalTo(self);
-            make.bottom.equalTo(self).offset(0.f);
-        }];
+        [self.textContainer autoPinEdgesToSuperviewEdges];
         
         _textView = [UITextView new];
         self.textView.backgroundColor = [UIColor clearColor];
@@ -47,35 +46,14 @@
         self.textView.returnKeyType = UIReturnKeyDone;
         self.textView.clipsToBounds = NO;
         self.textView.delegate = self;
+        self.textView.inputAccessoryView = [[UIView alloc] init];
         [self.textContainer addSubview:self.textView];
-        [self.textView mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.edges.equalTo(self.textContainer).insets(_textEditingInsets);
-        }];
+        [self.textView autoPinEdgesToSuperviewEdges];
         
         self.textContainer.hidden = YES;
         self.userInteractionEnabled = NO;
         
-        [[NSNotificationCenter defaultCenter] addObserverForName:UIKeyboardWillChangeFrameNotification
-                                                          object:nil
-                                                           queue:nil
-                                                      usingBlock:^(NSNotification *note){
-                                                          
-                                                          [self.textContainer.layer removeAllAnimations];
-                                                          
-                                                          CGRect keyboardRectEnd = [note.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-                                                          NSTimeInterval duration = [note.userInfo[UIKeyboardAnimationDurationUserInfoKey] floatValue];
-                                                          
-                                                          [self.textContainer mas_updateConstraints:^(MASConstraintMaker *make) {
-                                                              make.bottom.equalTo(self).offset(-CGRectGetHeight(keyboardRectEnd));
-                                                          }];
-                                                          
-                                                          [UIView animateWithDuration:duration
-                                                                                delay:0.f
-                                                                              options:UIViewAnimationOptionBeginFromCurrentState
-                                                                           animations:^{
-                                                                               [self.textContainer layoutIfNeeded];
-                                                                           } completion:nil];
-                                                      }];
+        
     }
     
     return self;
@@ -120,7 +98,7 @@
 
 - (void)setFontSize:(CGFloat)fontSize
 {
-    if (_fontSize != fontSize) {
+    if (!fequalzero(_fontSize - fontSize)) {
         _fontSize = fontSize;
         self.textView.font = [_font fontWithSize:fontSize];
     }
@@ -226,7 +204,7 @@
 
 #pragma mark - Text Editing
 
-- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text;
+- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
 {
     if ([text isEqualToString: @"\n"]) {
         self.isEditing = NO;

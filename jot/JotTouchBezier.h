@@ -50,6 +50,11 @@
 @property (nonatomic, strong) UIColor *strokeColor;
 
 /**
+ *  YES if need to show the arrow at the end of line.
+ */
+@property (nonatomic) BOOL needShowArrow;
+
+/**
  *  YES if the line is a constant width, NO if variable width.
  */
 @property (nonatomic, assign) BOOL constantWidth;

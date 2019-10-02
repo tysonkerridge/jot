@@ -84,6 +84,65 @@
 - (void)drawTouchEnded;
 
 /**
+ *  Tells the JotDrawView to handle a touchesBegan event to draw a line.
+ *
+ *  @param touchPoint The point in this view's coordinate
+ *  system where the touch began.
+ *
+ *  @note This method is triggered by the JotDrawController's
+ *  touchesBegan event.
+ */
+- (void)drawLineBeganAtPoint:(CGPoint)touchPoint;
+
+/**
+ *  Tells the JotDrawView to handle a touchesMoved event to draw a line.
+ *
+ *  @param touchPoint The point in this view's coordinate
+ *  system where the touch moved.
+ *
+ *  @note This method is triggered by the JotDrawController's
+ *  touchesMoved event.
+ */
+- (void)drawLineMovedToPoint:(CGPoint)touchPoint;
+
+/**
+ *  Tells the JotDrawView to handle a touchesEnded event to draw a line.
+ *
+ *  @note This method is triggered by the JotDrawController's
+ *  touchesEnded event.
+ */
+- (void)drawLineEnded;
+
+/**
+ *  Tells the JotDrawView to handle a touchesBegan event to draw a line with arrow.
+ *
+ *  @param touchPoint The point in this view's coordinate
+ *  system where the touch began.
+ *
+ *  @note This method is triggered by the JotDrawController's
+ *  touchesBegan event.
+ */
+- (void)drawArrowLineBeganAtPoint:(CGPoint)touchPoint;
+
+/**
+ *  Tells the JotDrawView to handle a touchesMoved event to draw a line with arrow.
+ *
+ *  @param touchPoint The point in this view's coordinate
+ *  system where the touch moved.
+ *
+ *  @note This method is triggered by the JotDrawController's
+ *  touchesMoved event.
+ */
+- (void)drawArrowLineMovedToPoint:(CGPoint)touchPoint;
+
+/**
+ *  Tells the JotDrawView to handle a touchesEnded event to draw a line with arrow.
+ *
+ *  @note This method is triggered by the JotDrawController's
+ *  touchesEnded event.
+ */
+- (void)drawArrowLineEnded;
+/**
  *  Overlays the drawing on the given background image, rendering
  *  the drawing at the full resolution of the image.
  *
@@ -108,4 +167,11 @@
  */
 - (UIImage *)renderDrawingWithSize:(CGSize)size;
 
+
+/*
+ * Block-based renderDrawingWithSize
+ * Jene Edit 01/31/2019
+ */
+- (void)drawOnImage:(UIImage *)image block:(void (^)(UIImage *image)) completion;
+- (void)drawAllPathsImageWithSize:(CGSize)size backgroundImage:(UIImage *)backgroundImage bounds:(CGRect)bounds block:(void (^)(UIImage *image)) completion;
 @end

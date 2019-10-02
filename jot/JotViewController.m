@@ -40,7 +40,6 @@
         _drawingContainer = [JotDrawingContainer new];
         self.drawingContainer.delegate = self;
         
-        
         _font = self.textView.font;
         self.textEditView.font = self.font;
         _fontSize = self.textView.fontSize;
@@ -68,6 +67,9 @@
         
         _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapGesture:)];
         self.tapRecognizer.delegate = self;
+        
+        //By default the paint tool is doodle
+        self.currentPaintTool = gPaintToolsDoodle;
     }
     
     return self;
@@ -159,7 +161,7 @@
 
 - (void)setFontSize:(CGFloat)fontSize
 {
-    if (_fontSize != fontSize) {
+    if (!fequalzero(_fontSize - fontSize)) {
         _fontSize = fontSize;
         self.textView.fontSize =
         self.textEditView.fontSize = fontSize;
@@ -231,7 +233,7 @@
 
 - (void)setDrawingStrokeWidth:(CGFloat)drawingStrokeWidth
 {
-    if (_drawingStrokeWidth != drawingStrokeWidth) {
+    if (!fequalzero(_drawingStrokeWidth - drawingStrokeWidth)) {
         _drawingStrokeWidth = drawingStrokeWidth;
         self.drawView.strokeWidth = drawingStrokeWidth;
     }
@@ -319,23 +321,55 @@
     return [self.textView drawTextOnImage:renderDrawingImage];
 }
 
+- (void) blockRenderImageWithSize:(CGSize)size onColor:(UIColor *)color continueHandler:(BOOL (^)(void))continueHandler completion:(void (^)(UIImage* imageReturn))block
+{
+
+    [UIImage jotImageWithColor:color size:size completion:^(UIImage *imageReturn) {
+        if (!continueHandler()) {
+            return;
+        }
+        [self.drawView drawOnImage:imageReturn block:^(UIImage *image) {
+            if (!continueHandler()) {
+                return;
+            }
+            [self.textView drawTextOnImage:image completion:block];
+
+        }];
+    }];
+   
+   
+  
+}
+
 #pragma mark - Gestures
 
-- (void)handleTapGesture:(UIGestureRecognizer *)recognizer
+- (void)handleTapGesture:(__unused UIGestureRecognizer *)recognizer
 {
-    if (!(self.state == JotViewStateEditingText)) {
-        self.state = JotViewStateEditingText;
-    }
+    //if (recognizer.state == UIGestureRecognizerStateRecognized) {
+        if (!(self.state == JotViewStateEditingText)) {
+            self.state = JotViewStateEditingText;
+        }
+    //}
 }
 
 - (void)handlePanGesture:(UIGestureRecognizer *)recognizer
 {
     [self.textView handlePanGesture:recognizer];
+    if (recognizer.state == UIGestureRecognizerStateEnded) {
+        if ([self.delegate respondsToSelector:@selector(jotViewControllerDidChange:)]) {
+            [self.delegate jotViewControllerDidChange:self];
+        }
+    }
 }
 
 - (void)handlePinchOrRotateGesture:(UIGestureRecognizer *)recognizer
 {
     [self.textView handlePinchOrRotateGesture:recognizer];
+    if (recognizer.state == UIGestureRecognizerStateEnded) {
+        if ([self.delegate respondsToSelector:@selector(jotViewControllerDidChange:)]) {
+            [self.delegate jotViewControllerDidChange:self];
+        }
+    }
 }
 
 #pragma mark - JotDrawingContainer Delegate
@@ -343,14 +377,41 @@
 - (void)jotDrawingContainerTouchBeganAtPoint:(CGPoint)touchPoint
 {
     if (self.state == JotViewStateDrawing) {
-        [self.drawView drawTouchBeganAtPoint:touchPoint];
+        switch (self.currentPaintTool) {
+            case gPaintToolsDoodle:
+                [self.drawView drawTouchBeganAtPoint:touchPoint];
+                break;
+            case gPaintToolsLine:
+                [self.drawView drawLineBeganAtPoint:touchPoint];
+                break;
+            case gPaintToolsArrow:
+                [self.drawView drawArrowLineBeganAtPoint:touchPoint];
+                break;
+  
+            default:
+                break;
+        }
     }
 }
 
 - (void)jotDrawingContainerTouchMovedToPoint:(CGPoint)touchPoint
 {
     if (self.state == JotViewStateDrawing) {
-        [self.drawView drawTouchMovedToPoint:touchPoint];
+        switch (self.currentPaintTool) {
+            case gPaintToolsDoodle:
+                [self.drawView drawTouchMovedToPoint:touchPoint];
+                break;
+            case gPaintToolsLine:
+                [self.drawView drawLineMovedToPoint:touchPoint];
+                break;
+            case gPaintToolsArrow:
+                [self.drawView drawArrowLineMovedToPoint:touchPoint];
+                break;
+                
+            default:
+                break;
+        }
+
     }
 }
 
@@ -358,17 +419,36 @@
 {
     if (self.state == JotViewStateDrawing) {
         [self.drawView drawTouchEnded];
+        switch (self.currentPaintTool) {
+            case gPaintToolsDoodle:
+                [self.drawView drawTouchEnded];
+                break;
+            case gPaintToolsLine:
+                [self.drawView drawLineEnded];
+
+                break;
+            case gPaintToolsArrow:
+                [self.drawView drawArrowLineEnded];
+                break;
+                
+            default:
+                break;
+        }
+
+    }
+    if ([self.delegate respondsToSelector:@selector(jotViewControllerDidChange:)]) {
+        [self.delegate jotViewControllerDidChange:self];
     }
 }
 
 #pragma mark - UIGestureRecognizer Delegate
 
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+- (BOOL)gestureRecognizer:(__unused UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(__unused  UIGestureRecognizer *)otherGestureRecognizer
 {
     return YES;
 }
 
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldBeRequiredToFailByGestureRecognizer:(__unused  UIGestureRecognizer *)otherGestureRecognizer
 {
     if ([gestureRecognizer isKindOfClass:[UITapGestureRecognizer class]]) {
         return YES;
@@ -388,6 +468,9 @@
     
     if ([self.delegate respondsToSelector:@selector(jotViewController:isEditingText:)]) {
         [self.delegate jotViewController:self isEditingText:NO];
+    }
+    if ([self.delegate respondsToSelector:@selector(jotViewControllerDidChange:)]) {
+        [self.delegate jotViewControllerDidChange:self];
     }
 }
 

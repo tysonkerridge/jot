@@ -27,6 +27,8 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
 @property (nonatomic, assign) CGFloat lastVelocity;
 @property (nonatomic, assign) CGFloat lastWidth;
 @property (nonatomic, assign) CGFloat initialVelocity;
+@property (nonatomic, assign) BOOL needShowArrow;
+
 
 @end
 
@@ -52,6 +54,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
         _lastWidth = _strokeWidth;
         
         self.userInteractionEnabled = NO;
+        self.needShowArrow = NO;
     }
     
     return self;
@@ -78,7 +81,21 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
                     }
                     completion:nil];
 }
+- (void)clearLineDrawing
+{
+    [self.pathsArray removeLastObject];
 
+    self.bezierPath = nil;
+    self.lastVelocity = self.initialVelocity;
+    self.lastWidth = self.strokeWidth;
+    
+    [UIView transitionWithView:self duration:0.2f
+                       options:UIViewAnimationOptionTransitionCrossDissolve
+                    animations:^{
+                        [self setNeedsDisplay];
+                    }
+                    completion:nil];
+}
 #pragma mark - Properties
 
 - (void)setConstantStrokeWidth:(BOOL)constantStrokeWidth
@@ -99,6 +116,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
     self.lastWidth = self.strokeWidth;
     self.pointsCounter = 0;
     [self.pointsArray removeAllObjects];
+    self.needShowArrow = NO;
     [self.pointsArray addObject:[JotTouchPoint withPoint:touchPoint]];
 }
 
@@ -153,6 +171,83 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
     self.lastWidth = self.strokeWidth;
 }
 
+#pragma mark - Draw line Touches
+
+- (void)drawLineBeganAtPoint:(CGPoint)touchPoint
+{
+    self.lastVelocity = self.initialVelocity;
+    self.lastWidth = self.strokeWidth;
+    self.pointsCounter = 0;
+    [self.pointsArray removeAllObjects];
+    self.needShowArrow = NO;
+    [self.pointsArray addObject:[JotTouchPoint withPoint:touchPoint]];
+}
+
+- (void)drawLineMovedToPoint:(CGPoint)touchPoint
+{
+    [self clearLineDrawing];
+    self.bezierPath.startWidth = self.strokeWidth;
+    self.bezierPath.endWidth = self.strokeWidth;
+    if([self.pointsArray count]>1){
+        [self.pointsArray removeLastObject];
+    }
+    self.pointsCounter++;
+    [self.pointsArray addObject:[JotTouchPoint withPoint:touchPoint]];
+    
+    self.bezierPath.startPoint = [[self.pointsArray firstObject] CGPointValue];
+    self.bezierPath.endPoint = [[self.pointsArray lastObject] CGPointValue];
+    
+    self.bezierPath.controlPoint1 = self.bezierPath.startPoint;
+    self.bezierPath.controlPoint2 = self.bezierPath.endPoint;
+
+    //NSLog(@"%lu",(unsigned long)self.pointsCounter);
+}
+
+- (void)drawLineEnded
+{
+    self.pointsCounter = 0;
+    [self drawBitmap];
+    self.lastVelocity = self.initialVelocity;
+    self.lastWidth = self.strokeWidth;
+}
+#pragma mark - Draw line Touches
+
+- (void)drawArrowLineBeganAtPoint:(CGPoint)touchPoint
+{   //NSLog(@"drawLineBeganAtPointL: (%f,%f)",touchPoint.x,touchPoint.y);
+    self.lastVelocity = self.initialVelocity;
+    self.lastWidth = self.strokeWidth;
+    self.pointsCounter = 0;
+    [self.pointsArray removeAllObjects];
+    [self.pointsArray addObject:[JotTouchPoint withPoint:touchPoint]];
+    self.needShowArrow = YES;
+}
+
+- (void)drawArrowLineMovedToPoint:(CGPoint)touchPoint
+{
+    //NSLog(@"drawLineMovedToPoint: (%f,%f)",touchPoint.x,touchPoint.y);
+    [self clearLineDrawing];
+    self.bezierPath.startWidth = self.strokeWidth;
+    self.bezierPath.endWidth = self.strokeWidth;
+    if([self.pointsArray count]>1){
+        [self.pointsArray removeLastObject];
+    }
+    self.pointsCounter++;
+    [self.pointsArray addObject:[JotTouchPoint withPoint:touchPoint]];
+    
+    self.bezierPath.startPoint = [[self.pointsArray firstObject] CGPointValue];
+    self.bezierPath.endPoint = [[self.pointsArray lastObject] CGPointValue];
+    
+    self.bezierPath.controlPoint1 = self.bezierPath.startPoint;
+    self.bezierPath.controlPoint2 = self.bezierPath.endPoint;
+}
+
+- (void)drawArrowLineEnded
+{
+    self.pointsCounter = 0;
+    [self drawBitmap];
+    self.lastVelocity = self.initialVelocity;
+    self.lastWidth = self.strokeWidth;
+}
 #pragma mark - Drawing
 
 - (void)drawBitmap
@@ -163,7 +258,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
         if (self.keepRatio) {
             [self.cachedImage drawInRect:self.bounds];
         } else {
-            [self.cachedImage drawAtPoint:CGPointZero]
+            [self.cachedImage drawAtPoint:CGPointZero];
         }
     }
 
@@ -209,6 +304,11 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
         _bezierPath = [JotTouchBezier withColor:self.strokeColor];
         [self.pathsArray addObject:_bezierPath];
         _bezierPath.constantWidth = self.constantStrokeWidth;
+        if(self.needShowArrow){
+            self.bezierPath.needShowArrow = YES;
+            self.bezierPath.constantWidth = YES;
+        }
+        
     }
     
     return _bezierPath;
@@ -246,15 +346,55 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
 
 - (void)drawAllPaths
 {
-    for (NSObject *path in self.pathsArray) {
-        if ([path isKindOfClass:[JotTouchBezier class]]) {
-            [(JotTouchBezier *)path jotDrawBezier];
-        } else if ([path isKindOfClass:[JotTouchPoint class]]) {
-            [[(JotTouchPoint *)path strokeColor] setFill];
-            [JotTouchBezier jotDrawBezierPoint:[(JotTouchPoint *)path CGPointValue]
-                                     withWidth:[(JotTouchPoint *)path strokeWidth]];
+    NSArray *tmpPaths = [[NSArray alloc] initWithArray:self.pathsArray];
+    @synchronized (self.pathsArray) {
+        for (NSObject *path in tmpPaths) {
+            if ([path isKindOfClass:[JotTouchBezier class]]) {
+                [(JotTouchBezier *)path jotDrawBezier];
+            } else if ([path isKindOfClass:[JotTouchPoint class]]) {
+                [[(JotTouchPoint *)path strokeColor] setFill];
+                [JotTouchBezier jotDrawBezierPoint:[(JotTouchPoint *)path CGPointValue]
+                                         withWidth:[(JotTouchPoint *)path strokeWidth]];
+            }
         }
     }
 }
+
+
+
+- (void)drawOnImage:(UIImage *)image block:(void (^)(UIImage *image)) completion
+{
+    [self drawAllPathsImageWithSize:image.size backgroundImage:image bounds:self.bounds block:completion];
+}
+
+- (void)drawAllPathsImageWithSize:(CGSize)size backgroundImage:(UIImage *)backgroundImage bounds:(CGRect)bounds block:(void (^)(UIImage *image)) completion
+{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void)
+                   {
+                       
+                       CGFloat scale = size.width / CGRectGetWidth(bounds);
+                       
+                       UIGraphicsBeginImageContextWithOptions(bounds.size, NO, scale);
+                       
+                       [backgroundImage drawInRect:CGRectMake(0.f, 0.f, CGRectGetWidth(bounds), CGRectGetHeight(bounds))];
+                       
+                       [self drawAllPaths];
+                       
+                       UIImage *drawnImage = UIGraphicsGetImageFromCurrentImageContext();
+                       UIGraphicsEndImageContext();
+                       UIImage *returnImage = [UIImage imageWithCGImage:drawnImage.CGImage
+                                                                  scale:1.f
+                                                            orientation:drawnImage.imageOrientation];
+                       dispatch_async(dispatch_get_main_queue(), ^(void)
+                                      {
+                                          completion(returnImage);
+                                      });
+                       
+                   });
+    
+    
+}
+
+
 
 @end

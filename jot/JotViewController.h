@@ -9,6 +9,14 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 
+typedef NS_ENUM(NSUInteger, PaintToolsType) {
+    gPaintToolsDoodle,
+    gPaintToolsLine,
+    gPaintToolsArrow
+};
+#define fequalzero(a) (fabs(a) < FLT_EPSILON)
+
+
 /**
  *  The possible states of the JotViewController
  */
@@ -161,6 +169,16 @@ typedef NS_ENUM(NSUInteger, JotViewState){
 @property (nonatomic, assign) BOOL clipBoundsToEditingInsets;
 
 
+/**
+ *  By default, when JotView in drawing mode, the paint tool is "gPaintToolsDoodle".
+ *  There are 3 options:
+ *   gPaintToolsDoodle,
+ *   gPaintToolsLine,
+ *   gPaintToolsArrow。
+ */
+@property (nonatomic, assign) PaintToolsType currentPaintTool;
+
+
 @property (nonatomic, strong, readonly) JotDrawingContainer *drawingContainer;
 
 /**
@@ -218,6 +236,12 @@ typedef NS_ENUM(NSUInteger, JotViewState){
  */
 - (UIImage *)renderImageWithScale:(CGFloat)scale onColor:(UIColor *)color;
 
+- (UIImage *)renderImageWithSize:(CGSize)size onColor:(UIColor *)color;
+/*
+ Block-based renderer
+ Jene Edit 01/31/2019
+ */
+- (void) blockRenderImageWithSize:(CGSize)size onColor:(UIColor *)color continueHandler:(BOOL (^)(void))continueHandler completion:(void (^)(UIImage* imageReturn))block;
 @end
 
 @protocol JotViewControllerDelegate <NSObject>
@@ -231,5 +255,6 @@ typedef NS_ENUM(NSUInteger, JotViewState){
  *  @param isEditing    YES if entering edit (keyboard text entry) mode, NO if exiting edit mode
  */
 - (void)jotViewController:(JotViewController *)jotViewController isEditingText:(BOOL)isEditing;
+- (void)jotViewControllerDidChange:(JotViewController *)jotViewController;
 
 @end

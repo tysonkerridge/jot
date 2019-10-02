@@ -103,6 +103,13 @@
  */
 - (UIImage *)drawTextOnImage:(UIImage *)image;
 
+/*
+ * Block-based drawTextOnImage
+ * Jene Edit 01/31/2019
+ */
+- (void) drawTextOnImage:(UIImage *)image completion:(void (^)(UIImage* imageReturn))block;
+- (void) blockDrawTextImageWithSize:(CGSize)size backgroundImage:(UIImage *)backgroundImage bounds:(CGRect)bounds layer:(CALayer*)theLayer completion:(void (^)(UIImage* imageReturn))block;
+
 /**
  *  Renders the text overlay at full resolution for the given size.
  *
