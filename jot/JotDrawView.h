@@ -25,6 +25,9 @@
  */
 @property (nonatomic, assign) BOOL constantStrokeWidth;
 
+/// Default is NO. Set YES to keep ratio of image when the view changes size.
+@property (nonatomic, assign) BOOL keepRatio;
+
 /**
  *  Sets the stroke width if constantStrokeWidth is true,
  *  or sets the base strokeWidth for variable drawing paths.

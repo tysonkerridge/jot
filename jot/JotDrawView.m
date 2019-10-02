@@ -38,6 +38,7 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
         
         self.backgroundColor = [UIColor clearColor];
         
+        _keepRatio = NO;
         _strokeWidth = 10.f;
         _strokeColor = [UIColor blackColor];
         
@@ -159,7 +160,11 @@ CGFloat const kJotRelativeMinStrokeWidth = 0.4f;
     UIGraphicsBeginImageContextWithOptions(self.bounds.size, NO, [UIScreen mainScreen].scale);
     
     if (self.cachedImage) {
-        [self.cachedImage drawAtPoint:CGPointZero];
+        if (self.keepRatio) {
+            [self.cachedImage drawInRect:self.bounds];
+        } else {
+            [self.cachedImage drawAtPoint:CGPointZero]
+        }
     }
 
     [self.bezierPath jotDrawBezier];

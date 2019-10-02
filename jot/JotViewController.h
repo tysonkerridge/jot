@@ -121,6 +121,9 @@ typedef NS_ENUM(NSUInteger, JotViewState){
  */
 @property (nonatomic, assign) BOOL drawingConstantStrokeWidth;
 
+/// Default is NO. Set YES to keep ratio of image when the view changes size.
+@property (nonatomic, assign) BOOL drawingKeepRatio;
+
 /**
  *  The view insets of the text displayed in the JotTextEditView. By default,
  *  the text that extends beyond the insets of the text input view will fade out

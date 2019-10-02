@@ -40,6 +40,7 @@
         _drawingContainer = [JotDrawingContainer new];
         self.drawingContainer.delegate = self;
         
+        
         _font = self.textView.font;
         self.textEditView.font = self.font;
         _fontSize = self.textView.fontSize;
@@ -51,6 +52,7 @@
         _textString = @"";
         _drawingColor = self.drawView.strokeColor;
         _drawingStrokeWidth = self.drawView.strokeWidth;
+        _drawingKeepRatio = self.drawView.keepRatio;
         _textEditingInsets = self.textEditView.textEditingInsets;
         _initialTextInsets = self.textView.initialTextInsets;
         _state = JotViewStateDefault;
@@ -240,6 +242,13 @@
     if (_drawingConstantStrokeWidth != drawingConstantStrokeWidth) {
         _drawingConstantStrokeWidth = drawingConstantStrokeWidth;
         self.drawView.constantStrokeWidth = drawingConstantStrokeWidth;
+    }
+}
+
+- (void)setDrawingKeepRatio:(BOOL)drawingKeepRatio {
+    if (_drawingKeepRatio != drawingKeepRatio) {
+        _drawingKeepRatio = drawingKeepRatio;
+        self.drawView.keepRatio = drawingKeepRatio;
     }
 }
 
